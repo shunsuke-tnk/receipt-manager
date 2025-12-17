@@ -5,7 +5,7 @@ interface AuthPromptProps {
   onAuthComplete: () => void;
 }
 
-function AuthPrompt({ onAuthComplete }: AuthPromptProps) {
+function AuthPrompt(_props: AuthPromptProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAuth = async () => {

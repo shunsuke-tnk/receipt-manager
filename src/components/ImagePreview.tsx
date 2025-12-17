@@ -11,7 +11,6 @@ interface ImagePreviewProps {
 
 function ImagePreview({
   originalImage,
-  previewImage,
   contour,
   onContourChange,
   onConfirm,

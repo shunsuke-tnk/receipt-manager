@@ -7,7 +7,7 @@ interface ImageAdjustProps {
   onBack: () => void;
 }
 
-function ImageAdjust({ image, contour, onComplete, onBack }: ImageAdjustProps) {
+function ImageAdjust({ image, onComplete, onBack }: ImageAdjustProps) {
   const [brightness, setBrightness] = useState(0);
   const [contrast, setContrast] = useState(1.0);
   const [denoise, setDenoise] = useState(false);
