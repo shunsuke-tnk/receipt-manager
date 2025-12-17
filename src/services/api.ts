@@ -36,20 +36,30 @@ export interface AuthUrlResponse {
 
 class ApiService {
   async detectContour(imageData: string): Promise<DetectContourResponse> {
-    const response = await fetch(`${API_BASE_URL}/detect-contour`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ image: imageData }),
-    });
+    try {
+      console.log('API Request to:', `${API_BASE_URL}/detect-contour`);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '輪郭検出に失敗しました');
+      const response = await fetch(`${API_BASE_URL}/detect-contour`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageData }),
+      });
+
+      console.log('API Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`API接続エラー (${response.status}): バックエンドサーバーに接続できません`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Network Error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async processImage(
@@ -59,56 +69,76 @@ class ApiService {
     contrast: number = 1.0,
     denoise: boolean = false
   ): Promise<ProcessImageResponse> {
-    const response = await fetch(`${API_BASE_URL}/process-image`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: imageData,
-        contour,
-        brightness,
-        contrast,
-        denoise,
-      }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/process-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: imageData,
+          contour,
+          brightness,
+          contrast,
+          denoise,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || '画像処理に失敗しました');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '画像処理に失敗しました');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Process Image Error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async uploadToDrive(imageData: string, filename?: string): Promise<UploadResponse> {
-    const response = await fetch(`${API_BASE_URL}/upload-to-drive`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: imageData,
-        filename,
-      }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload-to-drive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: imageData,
+          filename,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'アップロードに失敗しました');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'アップロードに失敗しました');
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Upload Error:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async checkAuthStatus(): Promise<AuthStatusResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/status`);
-    return response.json();
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/status`);
+      return response.json();
+    } catch (error) {
+      console.error('Auth Status Error:', error);
+      return { authenticated: false };
+    }
   }
 
   async getAuthUrl(): Promise<AuthUrlResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/url`);
-    return response.json();
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/url`);
+      return response.json();
+    } catch (error) {
+      console.error('Get Auth URL Error:', error);
+      throw new Error('認証URLの取得に失敗しました。バックエンドサーバーに接続できません。');
+    }
   }
 }
 

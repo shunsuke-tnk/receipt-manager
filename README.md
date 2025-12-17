@@ -2,6 +2,12 @@
 
 スマホで撮影したレシートや領収書を自動でトリミング・補正し、Googleドライブに保存するWebアプリケーション。
 
+## 🚀 すぐに始める
+
+**初めての方**: [QUICK_START.md](QUICK_START.md) を見て最速で起動してください
+
+**エラーが出た方**: 下記の「トラブルシューティング」セクションを確認
+
 ## 機能
 
 ### MVP機能
@@ -100,14 +106,18 @@ npm install
 
 ### 5. アプリケーションの起動
 
-#### ターミナル1: バックエンド起動
+**⚠️ 重要: 必ず両方のサーバーを起動してください**
+
+#### ターミナル1: バックエンド起動（必須）
 
 ```bash
-source venv/bin/activate
+source venv/bin/activate  # Windowsの場合: venv\Scripts\activate
 python app.py
 ```
 
 Flask APIが http://localhost:5000 で起動します。
+
+**起動確認**: ブラウザで http://localhost:5000/api/health にアクセスして `{"status": "ok"}` が表示されることを確認
 
 #### ターミナル2: フロントエンド起動
 
@@ -175,24 +185,75 @@ Vite開発サーバーが http://localhost:5173 で起動します。
 
 ## トラブルシューティング
 
-### カメラが起動しない
+### 🚨 「サーバーに接続できません」エラー
+
+**症状**: 画像をアップロードしようとすると「輪郭に失敗しました」「API接続エラー」が表示される
+
+**原因**: バックエンドAPIサーバーが起動していない
+
+**解決策**:
+1. 新しいターミナルを開く
+2. バックエンドを起動:
+   ```bash
+   cd "/Users/tanakashunsuke/レシート処理アプリ"
+   source venv/bin/activate
+   python app.py
+   ```
+3. 起動確認: http://localhost:5000/api/health にアクセス
+4. `{"status": "ok", "message": "Receipt Manager API is running"}` が表示されればOK
+5. ブラウザをリロード
+
+**ローカル開発時の注意**:
+- フロントエンド (Vite) とバックエンド (Flask) の**両方**を起動する必要があります
+- バックエンドが起動していないと、すべてのAPIリクエストが失敗します
+
+### 🔑 「Drive連携」ボタンでエラー
+
+**症状**: Drive連携ボタンを押すとエラーが出る
+
+**原因**:
+1. バックエンドAPIが起動していない（上記参照）
+2. `credentials.json` が配置されていない
+
+**解決策**:
+1. まずバックエンドを起動（上記参照）
+2. Google Cloud Consoleから `credentials.json` をダウンロード
+3. プロジェクトルートに配置
+4. `.env` ファイルに認証情報を設定
+
+### 📷 カメラが起動しない
 - ブラウザのカメラ権限を確認
 - HTTPSまたはlocalhostでアクセスしているか確認
 - 代わりに「ファイルから選択」を使用
 
-### 輪郭検出がうまくいかない
+### 🔍 輪郭検出がうまくいかない
 - レシートを明るい場所で撮影
 - レシートをできるだけ平らに置く
 - 手動調整で緑のポイントを正しい位置にドラッグ
 
-### アップロードが失敗する
+### 📤 アップロードが失敗する
 - Google Drive認証が完了しているか確認
 - `.env`の`GOOGLE_DRIVE_FOLDER_ID`が正しいか確認
 - ネットワーク接続を確認
 
-### TypeScriptエラーが表示される
+### 💻 TypeScriptエラーが表示される
 - まず依存パッケージをインストール: `npm install`
 - エラーは開発時のみで、実行には影響しません
+
+### 🌐 本番環境 (Vercel + Render.com) で動かない
+
+**確認事項**:
+1. **Render.comのバックエンド状態**:
+   - Render.comダッシュボードで「Live」になっているか
+   - ログにエラーがないか
+   - https://your-api-domain.onrender.com/api/health にアクセスして確認
+
+2. **Vercelの環境変数**:
+   - `VITE_API_URL` が正しく設定されているか
+   - 値は `https://your-api-domain.onrender.com` (末尾の /api は不要)
+
+3. **CORS設定**:
+   - `app.py` のCORS設定にVercelのドメインが含まれているか
 
 ## プロジェクト構造
 

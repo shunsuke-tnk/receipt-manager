@@ -41,10 +41,11 @@
 4. 名前: `Receipt Manager Web`
 5. **承認済みのリダイレクト URI** に追加:
    ```
-   http://localhost:5000/oauth2callback
+   http://localhost:5001/oauth2callback
    https://your-api-domain.onrender.com/oauth2callback
    ```
    ※ `your-api-domain` は後でRenderから取得するURLに置き換えます
+   ※ ローカル開発ではポート5001を使用（macOSのAirPlayレシーバーがポート5000を使用するため）
 
 6. 「作成」をクリック
 7. **クライアントID** と **クライアントシークレット** をコピーして保存
@@ -121,8 +122,10 @@ GOOGLE_CLIENT_ID=<Google Cloud Consoleからコピー>
 GOOGLE_CLIENT_SECRET=<Google Cloud Consoleからコピー>
 GOOGLE_REDIRECT_URI=https://receipt-manager-api.onrender.com/oauth2callback
 GOOGLE_DRIVE_FOLDER_ID=<GoogleドライブフォルダIDをコピー>
-PORT=10000
 ```
+
+**注意**: `PORT`環境変数はRender.comが自動的に設定するため、手動で設定する必要はありません。
+ローカル開発では`app.py`がデフォルトでポート5001を使用します。
 
 **重要**: `FLASK_SECRET_KEY` は以下のコマンドで生成:
 ```bash
@@ -198,8 +201,10 @@ Renderには直接ファイルアップロード機能がないため、以下�
 「Environment Variables」セクションで追加:
 
 ```
-VITE_API_URL=https://receipt-manager-api.onrender.com
+VITE_API_URL=https://receipt-manager-api.onrender.com/api
 ```
+
+**重要**: URLの末尾に `/api` を含めることで、フロントエンドからのAPI呼び出しが正しくルーティングされます。
 
 ### 4.4 デプロイ
 
