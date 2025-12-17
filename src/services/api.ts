@@ -1,4 +1,18 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const resolveApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5001/api';
+  }
+
+  console.warn('VITE_API_URLが設定されていないため、Renderの既定URLを使用します');
+  return 'https://receipt-manager-api.onrender.com/api';
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export interface Receipt {
   contour: number[][];

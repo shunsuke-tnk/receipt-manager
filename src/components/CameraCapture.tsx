@@ -11,7 +11,23 @@ function CameraCapture({ onCapture }: CameraCaptureProps) {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
 
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  }, [stream]);
+
   const startCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('このブラウザではカメラ機能がサポートされていません。最新のSafariやChromeをご利用ください。');
+      return;
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -28,28 +44,25 @@ function CameraCapture({ onCapture }: CameraCaptureProps) {
         // ビデオのメタデータが読み込まれるまで待つ
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              setIsCameraActive(true);
-            }).catch((err) => {
-              console.error('ビデオ再生エラー:', err);
-              alert('カメラの起動に失敗しました。');
-            });
+            videoRef.current
+              .play()
+              .then(() => {
+                setIsCameraActive(true);
+              })
+              .catch((err) => {
+                console.error('ビデオ再生エラー:', err);
+                alert('カメラの起動に失敗しました。');
+                stopCamera();
+              });
           }
         };
       }
     } catch (err) {
       console.error('カメラの起動に失敗:', err);
       alert('カメラの起動に失敗しました。ブラウザの設定でカメラへのアクセスを許可してください。');
+      stopCamera();
     }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-      setIsCameraActive(false);
-    }
-  }, [stream]);
+  }, [stopCamera]);
 
   const captureImage = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -91,7 +104,35 @@ function CameraCapture({ onCapture }: CameraCaptureProps) {
 
   return (
     <div className="space-y-4">
-      {!isCameraActive ? (
+      <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isCameraActive ? '' : 'hidden'}`}>
+        <div className="camera-container bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+
+        <div className="p-4 space-y-3">
+          <button
+            onClick={captureImage}
+            className="w-full px-6 py-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md"
+          >
+            📸 撮影する
+          </button>
+
+          <button
+            onClick={stopCamera}
+            className="w-full px-6 py-3 bg-gray-100 text-gray-800 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+
+      {!isCameraActive && (
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <div className="text-6xl mb-4">📸</div>
@@ -134,34 +175,6 @@ function CameraCapture({ onCapture }: CameraCaptureProps) {
               <li>• 明るい場所で撮影すると認識精度が上がります</li>
               <li>• レシートはなるべく平らに置いてください</li>
             </ul>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="camera-container bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-
-          <div className="p-4 space-y-3">
-            <button
-              onClick={captureImage}
-              className="w-full px-6 py-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md"
-            >
-              📸 撮影する
-            </button>
-
-            <button
-              onClick={stopCamera}
-              className="w-full px-6 py-3 bg-gray-100 text-gray-800 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-            >
-              キャンセル
-            </button>
           </div>
         </div>
       )}

@@ -65,7 +65,7 @@ function App() {
     }
   };
 
-  const handleReceiptSelect = (selectedIndex: number, contour: number[][]) => {
+  const handleReceiptSelect = (_selectedIndex: number, contour: number[][]) => {
     setDetectedContour(contour);
     setStep('preview');
   };

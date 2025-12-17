@@ -14,7 +14,6 @@ interface ReceiptSelectorProps {
 }
 
 function ReceiptSelector({
-  originalImage,
   previewImage,
   receipts,
   onSelect,
