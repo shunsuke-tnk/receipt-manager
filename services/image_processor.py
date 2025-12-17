@@ -11,18 +11,20 @@ class ImageProcessor:
     def __init__(self):
         self.min_contour_area = 1000  # 最小輪郭面積
 
-    def detect_receipt_contour(self, image_bytes):
+    def detect_receipt_contours(self, image_bytes, detect_multiple=True):
         """
-        画像からレシートの輪郭を自動検出
+        画像から複数のレシート輪郭を自動検出
 
         Args:
             image_bytes: 画像のバイトデータ
+            detect_multiple: 複数のレシートを検出するか
 
         Returns:
             dict: {
                 'success': bool,
-                'contour': list,  # [[x, y], [x, y], [x, y], [x, y]]
+                'receipts': list,  # [{'contour': [[x,y],...], 'area': int}, ...]
                 'preview': str,  # Base64エンコードされたプレビュー画像
+                'count': int,  # 検出されたレシート数
                 'error': str (optional)
             }
         """
@@ -58,42 +60,88 @@ class ImageProcessor:
             if not contours:
                 return {'success': False, 'error': '輪郭が検出できませんでした'}
 
-            # 面積が最大の輪郭を取得
-            largest_contour = max(contours, key=cv2.contourArea)
+            # 画像の面積を計算
+            image_area = original_width * original_height
 
-            # 輪郭を近似して四角形に
-            epsilon = 0.02 * cv2.arcLength(largest_contour, True)
-            approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+            # 複数のレシートを検出
+            detected_receipts = []
 
-            # 四角形でない場合は、バウンディングボックスを使用
-            if len(approx) != 4:
-                x, y, w, h = cv2.boundingRect(largest_contour)
-                approx = np.array([
-                    [[x, y]],
-                    [[x + w, y]],
-                    [[x + w, y + h]],
-                    [[x, y + h]]
-                ])
+            # 輪郭を面積でフィルタリング・ソート
+            valid_contours = []
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                # 画像の1%以上、90%以下の面積のみを対象
+                if image_area * 0.01 < area < image_area * 0.9:
+                    valid_contours.append((contour, area))
 
-            # 座標を並び替え (左上、右上、右下、左上の順)
-            points = self._order_points(approx.reshape(4, 2))
+            # 面積の大きい順にソート
+            valid_contours.sort(key=lambda x: x[1], reverse=True)
 
-            # プレビュー画像を生成（輪郭線を描画）
+            # 複数検出する場合は最大5枚まで
+            max_receipts = 5 if detect_multiple else 1
+
+            for contour, area in valid_contours[:max_receipts]:
+                # 輪郭を近似して四角形に
+                epsilon = 0.02 * cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, epsilon, True)
+
+                # 四角形でない場合は、バウンディングボックスを使用
+                if len(approx) != 4:
+                    x, y, w, h = cv2.boundingRect(contour)
+                    approx = np.array([
+                        [[x, y]],
+                        [[x + w, y]],
+                        [[x + w, y + h]],
+                        [[x, y + h]]
+                    ])
+
+                # 座標を並び替え (左上、右上、右下、左下の順)
+                points = self._order_points(approx.reshape(4, 2))
+
+                detected_receipts.append({
+                    'contour': points.tolist(),
+                    'area': int(area)
+                })
+
+            if not detected_receipts:
+                return {'success': False, 'error': 'レシートが検出できませんでした'}
+
+            # プレビュー画像を生成（すべての輪郭線を描画）
             preview_image = image.copy()
-            cv2.drawContours(
-                preview_image, [points.astype(np.int32)], -1, (0, 255, 0), 3
-            )
+            colors = [
+                (0, 255, 0),   # 緑
+                (255, 0, 0),   # 青
+                (0, 0, 255),   # 赤
+                (255, 255, 0), # シアン
+                (255, 0, 255)  # マゼンタ
+            ]
+
+            for idx, receipt in enumerate(detected_receipts):
+                color = colors[idx % len(colors)]
+                points = np.array(receipt['contour'], dtype=np.int32)
+                cv2.drawContours(preview_image, [points], -1, color, 3)
+
+                # レシート番号を表示
+                center_x = int(np.mean(points[:, 0]))
+                center_y = int(np.mean(points[:, 1]))
+                cv2.putText(
+                    preview_image,
+                    str(idx + 1),
+                    (center_x - 20, center_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    2,
+                    color,
+                    3
+                )
 
             # Base64エンコード
             _, buffer = cv2.imencode('.jpg', preview_image)
             preview_base64 = base64.b64encode(buffer).decode('utf-8')
 
-            # 座標をリストに変換
-            contour_list = points.tolist()
-
             return {
                 'success': True,
-                'contour': contour_list,
+                'receipts': detected_receipts,
+                'count': len(detected_receipts),
                 'preview': f'data:image/jpeg;base64,{preview_base64}'
             }
 

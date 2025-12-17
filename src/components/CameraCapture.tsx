@@ -24,11 +24,22 @@ function CameraCapture({ onCapture }: CameraCaptureProps) {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
-        setIsCameraActive(true);
+
+        // ビデオのメタデータが読み込まれるまで待つ
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              setIsCameraActive(true);
+            }).catch((err) => {
+              console.error('ビデオ再生エラー:', err);
+              alert('カメラの起動に失敗しました。');
+            });
+          }
+        };
       }
     } catch (err) {
       console.error('カメラの起動に失敗:', err);
-      alert('カメラの起動に失敗しました。ファイルアップロードをご利用ください。');
+      alert('カメラの起動に失敗しました。ブラウザの設定でカメラへのアクセスを許可してください。');
     }
   }, []);
 

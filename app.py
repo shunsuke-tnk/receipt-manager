@@ -31,11 +31,12 @@ def health_check():
 @app.route('/api/detect-contour', methods=['POST'])
 def detect_contour():
     """
-    画像から自動的にレシートの輪郭を検出
+    画像から自動的にレシートの輪郭を検出（複数枚対応）
     """
     try:
         data = request.get_json()
         image_data = data.get('image')
+        detect_multiple = data.get('detect_multiple', True)  # デフォルトで複数検出
 
         if not image_data:
             return jsonify({'error': '画像データが必要です'}), 400
@@ -46,13 +47,14 @@ def detect_contour():
 
         image_bytes = base64.b64decode(image_data)
 
-        # 輪郭検出
-        result = image_processor.detect_receipt_contour(image_bytes)
+        # 輪郭検出（複数対応）
+        result = image_processor.detect_receipt_contours(image_bytes, detect_multiple)
 
         if result['success']:
             return jsonify({
                 'success': True,
-                'contour': result['contour'],
+                'receipts': result['receipts'],
+                'count': result['count'],
                 'preview': result['preview']
             })
         else:

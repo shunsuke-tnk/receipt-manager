@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import CameraCapture from './components/CameraCapture';
+import ReceiptSelector from './components/ReceiptSelector';
 import ImagePreview from './components/ImagePreview';
 import ImageAdjust from './components/ImageAdjust';
 import UploadConfirm from './components/UploadConfirm';
 import LoadingSpinner from './components/LoadingSpinner';
 import AuthPrompt from './components/AuthPrompt';
 import { AppStep } from './types';
-import { apiService } from './services/api';
+import { apiService, Receipt } from './services/api';
 
 function App() {
   const [step, setStep] = useState<AppStep>('capture');
   const [capturedImage, setCapturedImage] = useState<string>('');
+  const [detectedReceipts, setDetectedReceipts] = useState<Receipt[]>([]);
   const [detectedContour, setDetectedContour] = useState<number[][]>([]);
   const [previewImage, setPreviewImage] = useState<string>('');
   const [processedImage, setProcessedImage] = useState<string>('');
@@ -38,13 +40,21 @@ function App() {
     setError('');
 
     try {
-      // 輪郭を自動検出
+      // 輪郭を自動検出（複数対応）
       const result = await apiService.detectContour(imageData);
 
-      if (result.success && result.contour && result.preview) {
-        setDetectedContour(result.contour);
+      if (result.success && result.receipts && result.preview) {
+        setDetectedReceipts(result.receipts);
         setPreviewImage(result.preview);
-        setStep('preview');
+
+        // 1枚だけ検出された場合は直接プレビューへ
+        if (result.count === 1) {
+          setDetectedContour(result.receipts[0].contour);
+          setStep('preview');
+        } else {
+          // 複数枚検出された場合は選択画面へ
+          setStep('select');
+        }
       } else {
         setError(result.error || '輪郭検出に失敗しました');
       }
@@ -53,6 +63,11 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReceiptSelect = (selectedIndex: number, contour: number[][]) => {
+    setDetectedContour(contour);
+    setStep('preview');
   };
 
   const handleContourAdjust = (newContour: number[][]) => {
@@ -152,6 +167,16 @@ function App() {
           <>
             {step === 'capture' && (
               <CameraCapture onCapture={handleImageCapture} />
+            )}
+
+            {step === 'select' && (
+              <ReceiptSelector
+                originalImage={capturedImage}
+                previewImage={previewImage}
+                receipts={detectedReceipts}
+                onSelect={handleReceiptSelect}
+                onCancel={handleReset}
+              />
             )}
 
             {step === 'preview' && (

@@ -25,4 +25,4 @@ export interface UploadResult {
   error?: string;
 }
 
-export type AppStep = 'capture' | 'preview' | 'adjust' | 'confirm' | 'uploading' | 'complete';
+export type AppStep = 'capture' | 'select' | 'preview' | 'adjust' | 'confirm' | 'uploading' | 'complete';

@@ -1,8 +1,14 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+export interface Receipt {
+  contour: number[][];
+  area: number;
+}
+
 export interface DetectContourResponse {
   success: boolean;
-  contour?: number[][];
+  receipts?: Receipt[];
+  count?: number;
   preview?: string;
   error?: string;
 }
